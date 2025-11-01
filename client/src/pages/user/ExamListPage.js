@@ -197,24 +197,25 @@ export default function ExamListPage() {
                     }}
                     onClick={() => navigate(`/exam/${exam.id}`)}
                   >
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 1.5, sm: 2 }, mb: 2 }}>
                         <Avatar
                           sx={{
                             bgcolor: 'primary.main',
-                            width: 56,
-                            height: 56,
+                            width: { xs: 48, sm: 56 },
+                            height: { xs: 48, sm: 56 },
                           }}
                         >
-                          <AssignmentIcon />
+                          <AssignmentIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
                         </Avatar>
-                        <Box sx={{ flex: 1 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography 
                             variant="h6" 
                             sx={{ 
                               fontWeight: 600,
                               mb: 1,
                               lineHeight: 1.3,
+                              fontSize: { xs: '1.125rem', sm: '1.25rem' },
                             }}
                           >
                             {exam.name}

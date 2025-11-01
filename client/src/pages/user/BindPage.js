@@ -20,6 +20,8 @@ import {
   Grid,
   InputAdornment,
   Chip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import SchoolIcon from '@mui/icons-material/School';
@@ -33,6 +35,8 @@ import api from '../../utils/api';
 import { validateSchoolName, validateName, validateIdCard } from '../../utils/validation';
 
 export default function BindPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -238,11 +242,12 @@ export default function BindPage() {
           >
             <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
               <Stepper 
-                activeStep={activeStep} 
+                activeStep={activeStep}
+                orientation={{ xs: 'vertical', sm: 'horizontal' }}
                 sx={{ 
                   mb: 4,
                   '& .MuiStepLabel-label': {
-                    fontSize: '0.95rem',
+                    fontSize: { xs: '0.875rem', sm: '0.95rem' },
                     fontWeight: 500,
                   },
                 }}
@@ -287,7 +292,7 @@ export default function BindPage() {
                     transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
                   >
                     <Box sx={{ mb: 3 }}>
-                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 3 }}>
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
                         <TextField
                           fullWidth
                           label="学校名称"
@@ -303,17 +308,39 @@ export default function BindPage() {
                               </InputAdornment>
                             ),
                           }}
+                          sx={{
+                            flex: 1,
+                          }}
                         />
                         <motion.div
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
+                          style={{ width: '100%', display: { xs: 'block', sm: 'none' } }}
+                        >
+                          <Button
+                            variant="contained"
+                            onClick={handleSearchSchools}
+                            disabled={loading || !!schoolError}
+                            fullWidth
+                            sx={{ 
+                              height: '56px',
+                            }}
+                            startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+                          >
+                            {loading ? '搜索中' : '🔍 搜索学校'}
+                          </Button>
+                        </motion.div>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          style={{ display: { xs: 'none', sm: 'block' } }}
                         >
                           <Button
                             variant="contained"
                             onClick={handleSearchSchools}
                             disabled={loading || !!schoolError}
                             sx={{ 
-                              minWidth: 120,
+                              minWidth: { xs: '100%', sm: 120 },
                               height: '56px',
                             }}
                             startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
@@ -418,23 +445,26 @@ export default function BindPage() {
                       </Select>
                     </FormControl>
                     
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between', flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
                       <Button 
                         onClick={() => setActiveStep(0)}
                         variant="outlined"
+                        fullWidth={isMobile}
                       >
                         返回
                       </Button>
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        style={{ width: isMobile ? '100%' : 'auto' }}
                       >
                         <Button
                           variant="contained"
                           onClick={() => setActiveStep(2)}
                           disabled={!selectedClass}
                           endIcon={<ArrowForwardIcon />}
-                          sx={{ minWidth: 120 }}
+                          fullWidth={isMobile}
+                          sx={{ minWidth: { xs: '100%', sm: 120 } }}
                         >
                           下一步
                         </Button>
@@ -489,17 +519,18 @@ export default function BindPage() {
                       }}
                     />
                     
-                    <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+                    <Box sx={{ display: 'flex', gap: 2, mt: 4, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
                       <Button 
                         onClick={() => setActiveStep(1)}
                         variant="outlined"
+                        fullWidth={isMobile}
                       >
                         返回
                       </Button>
                       <motion.div
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, width: isMobile ? '100%' : 'auto' }}
                       >
                         <Button
                           variant="contained"

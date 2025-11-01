@@ -282,15 +282,15 @@ export default function WelcomePage() {
                   }}
                   onClick={() => navigate(card.path)}
                 >
-                  <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
                     <motion.div
                       whileHover={{ rotate: [0, -10, 10, -10, 0] }}
                       transition={{ duration: 0.5 }}
                     >
                       <Box
                         sx={{
-                          width: 80,
-                          height: 80,
+                          width: { xs: 60, sm: 80 },
+                          height: { xs: 60, sm: 80 },
                           borderRadius: '50%',
                           background: card.gradient || `linear-gradient(135deg, ${card.color}15 0%, ${card.color}30 100%)`,
                           display: 'flex',
@@ -299,6 +299,9 @@ export default function WelcomePage() {
                           margin: '0 auto 20px',
                           border: `2px solid ${card.color}40`,
                           boxShadow: `0 4px 12px ${card.color}30`,
+                          '& svg': {
+                            fontSize: { xs: 30, sm: 40 },
+                          },
                         }}
                       >
                         <Box sx={{ color: 'white' }}>
@@ -312,6 +315,7 @@ export default function WelcomePage() {
                       sx={{ 
                         fontWeight: 600,
                         mb: 1,
+                        fontSize: { xs: '1.125rem', sm: '1.25rem' },
                       }}
                     >
                       {card.emoji} {card.title}
@@ -319,7 +323,10 @@ export default function WelcomePage() {
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
-                      sx={{ mb: 2 }}
+                      sx={{ 
+                        mb: 2,
+                        fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                      }}
                     >
                       {card.description}
                     </Typography>

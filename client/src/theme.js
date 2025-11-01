@@ -17,6 +17,15 @@ const theme = createTheme({
       paper: '#ffffff',
     },
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 960,
+      lg: 1280,
+      xl: 1920,
+    },
+  },
   typography: {
     fontFamily: [
       '-apple-system',
@@ -27,14 +36,44 @@ const theme = createTheme({
       'Arial',
       'sans-serif',
     ].join(','),
+    h1: {
+      fontSize: '2.5rem',
+      '@media (max-width:600px)': {
+        fontSize: '2rem',
+      },
+    },
+    h2: {
+      fontSize: '2rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.75rem',
+      },
+    },
+    h3: {
+      fontSize: '1.75rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.5rem',
+      },
+    },
     h4: {
       fontWeight: 600,
+      fontSize: '1.5rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.25rem',
+      },
     },
     h5: {
       fontWeight: 600,
+      fontSize: '1.25rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.125rem',
+      },
     },
     h6: {
       fontWeight: 600,
+      fontSize: '1rem',
+      '@media (max-width:600px)': {
+        fontSize: '0.9375rem',
+      },
     },
   },
   shape: {
@@ -49,8 +88,19 @@ const theme = createTheme({
           padding: '12px 28px',
           fontWeight: 500,
           transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          '@media (max-width:600px)': {
+            padding: '10px 20px',
+            fontSize: '0.875rem',
+          },
           '&:hover': {
             transform: 'scale(1.02)',
+          },
+        },
+        sizeSmall: {
+          padding: '8px 16px',
+          '@media (max-width:600px)': {
+            padding: '6px 12px',
+            fontSize: '0.8125rem',
           },
         },
       },

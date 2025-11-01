@@ -217,7 +217,7 @@ export default function ProfilePage() {
                     <Paper
                       elevation={0}
                       sx={{
-                        p: 2.5,
+                        p: { xs: 2, sm: 2.5 },
                         borderRadius: 2,
                         background: 'rgba(103, 126, 234, 0.05)',
                         border: '1px solid rgba(103, 126, 234, 0.1)',
@@ -228,26 +228,29 @@ export default function ProfilePage() {
                         },
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
                         <Box
                           sx={{
-                            width: 48,
-                            height: 48,
+                            width: { xs: 40, sm: 48 },
+                            height: { xs: 40, sm: 48 },
                             borderRadius: 2,
                             background: 'linear-gradient(135deg, #757575 0%, #616161 100%)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'white',
+                            '& svg': {
+                              fontSize: { xs: 20, sm: 24 },
+                            },
                           }}
                         >
                           {item.icon}
                         </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: { xs: '0.8125rem', sm: '0.875rem' } }}>
                             {item.emoji} {item.label}
                           </Typography>
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                             {item.value}
                           </Typography>
                         </Box>

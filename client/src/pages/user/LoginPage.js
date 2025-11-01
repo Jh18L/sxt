@@ -23,6 +23,8 @@ import {
   DialogActions,
   Paper,
   Snackbar,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -56,6 +58,8 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function LoginPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -338,12 +342,14 @@ export default function LoginPage() {
                   setCodeError('');
                 }}
                 centered
+                variant="fullWidth"
                 sx={{
                   mb: 3,
                   '& .MuiTab-root': {
-                    fontSize: '1rem',
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
                     fontWeight: 500,
                     textTransform: 'none',
+                    minHeight: { xs: 48, sm: 72 },
                   },
                 }}
               >
@@ -476,8 +482,8 @@ export default function LoginPage() {
                       sx={{ 
                         mt: 2, 
                         mb: 2,
-                        py: 1.5,
-                        fontSize: '1.1rem',
+                        py: { xs: 1.25, sm: 1.5 },
+                        fontSize: { xs: '1rem', sm: '1.1rem' },
                         fontWeight: 600,
                         background: 'linear-gradient(135deg, #757575 0%, #616161 100%)',
                         '&:hover': {
@@ -516,7 +522,7 @@ export default function LoginPage() {
                       ),
                     }}
                   />
-                  <Box sx={{ display: 'flex', gap: 1, mt: 2, mb: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 2, mb: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
                     <TextField
                       fullWidth
                       label="验证码"
@@ -532,19 +538,46 @@ export default function LoginPage() {
                           </InputAdornment>
                         ),
                       }}
+                      sx={{
+                        flex: 1,
+                      }}
                     />
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      style={{ width: '100%', display: { xs: 'block', sm: 'none' } }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={handleSendCode}
+                        disabled={codeSent && countdown > 0 || !!phoneError}
+                        fullWidth
+                        sx={{ 
+                          height: '56px',
+                          borderColor: 'primary.main',
+                          display: { xs: 'block', sm: 'none' },
+                          '&:hover': {
+                            borderColor: 'primary.dark',
+                          },
+                        }}
+                      >
+                        {countdown > 0 ? `⏱️ ${countdown}s` : '📤 发送验证码'}
+                      </Button>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      style={{ display: { xs: 'none', sm: 'block' } }}
                     >
                       <Button
                         variant="outlined"
                         onClick={handleSendCode}
                         disabled={codeSent && countdown > 0 || !!phoneError}
                         sx={{ 
-                          minWidth: 120,
+                          minWidth: { xs: '100%', sm: 120 },
                           height: '56px',
                           borderColor: 'primary.main',
+                          display: { xs: 'none', sm: 'block' },
                           '&:hover': {
                             borderColor: 'primary.dark',
                           },
@@ -603,8 +636,8 @@ export default function LoginPage() {
                       sx={{ 
                         mt: 2, 
                         mb: 2,
-                        py: 1.5,
-                        fontSize: '1.1rem',
+                        py: { xs: 1.25, sm: 1.5 },
+                        fontSize: { xs: '1rem', sm: '1.1rem' },
                         fontWeight: 600,
                         background: 'linear-gradient(135deg, #757575 0%, #616161 100%)',
                         '&:hover': {
@@ -635,9 +668,12 @@ export default function LoginPage() {
         onClose={() => setAgreementDialogOpen(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
         PaperProps={{
           sx: {
-            maxHeight: '80vh',
+            maxHeight: { xs: '100vh', sm: '80vh' },
+            m: { xs: 0, sm: 2 },
+            borderRadius: { xs: 0, sm: 2 },
           }
         }}
       >
@@ -646,18 +682,30 @@ export default function LoginPage() {
             📋 用户协议
           </Typography>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers
+          sx={{
+            p: { xs: 2, sm: 3 },
+          }}
+        >
           <Paper
             elevation={0}
             sx={{
-              p: 2,
+              p: { xs: 2, sm: 3 },
               bgcolor: 'background.default',
               borderRadius: 1,
-              maxHeight: '50vh',
+              maxHeight: { xs: 'calc(100vh - 200px)', sm: '50vh' },
               overflow: 'auto',
-              '& p': { mb: 2 },
-              '& h1, & h2, & h3': { mt: 2, mb: 1 },
-              '& ul, & ol': { pl: 3, mb: 2 },
+              '& p': { 
+                mb: 2,
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                lineHeight: { xs: 1.6, sm: 1.75 },
+              },
+              '& h1, & h2, & h3': { 
+                mt: 2, 
+                mb: 1,
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              },
+              '& ul, & ol': { pl: { xs: 2, sm: 3 }, mb: 2 },
             }}
           >
             {agreementContent ? (
@@ -711,6 +759,11 @@ export default function LoginPage() {
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          '&.MuiSnackbar-root': {
+            top: { xs: '16px', sm: '24px' },
+          },
+        }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}

@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -34,6 +36,8 @@ import api from '../../utils/api';
 import Footer from '../../components/Footer';
 
 export default function ExamDetailPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { examId } = useParams();
   const navigate = useNavigate();
   const [scores, setScores] = useState([]);
@@ -537,6 +541,7 @@ export default function ExamDetailPage() {
             component={Paper} 
             sx={{ 
               overflowX: 'auto',
+              maxWidth: '100%',
               '&::-webkit-scrollbar': {
                 height: '8px',
               },
@@ -552,7 +557,13 @@ export default function ExamDetailPage() {
               },
             }}
           >
-            <Table sx={{ minWidth: 650 }}>
+            <Table sx={{ 
+              minWidth: 650,
+              '& .MuiTableCell-root': {
+                fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                padding: { xs: '8px 12px', sm: '16px' },
+              },
+            }}>
               <TableHead>
                   <TableRow>
                     <TableCell sx={{ minWidth: 120 }}>科目</TableCell>
@@ -670,12 +681,16 @@ export default function ExamDetailPage() {
                           </TableCell>
                         )}
                         <TableCell align="center">
-                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'nowrap' }}>
+                          <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, justifyContent: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
                             <Button
                               size="small"
                               variant="outlined"
                               onClick={() => navigate(`/exam/${examId}/question/${score.examCourseId}`)}
-                              sx={{ whiteSpace: 'nowrap' }}
+                              sx={{ 
+                                whiteSpace: 'nowrap',
+                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                padding: { xs: '4px 8px', sm: '6px 16px' },
+                              }}
                             >
                               小题
                             </Button>
@@ -683,7 +698,11 @@ export default function ExamDetailPage() {
                               size="small"
                               variant="contained"
                               onClick={() => navigate(`/exam/${examId}/analysis/${score.examCourseId}`)}
-                              sx={{ whiteSpace: 'nowrap' }}
+                              sx={{ 
+                                whiteSpace: 'nowrap',
+                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                padding: { xs: '4px 8px', sm: '6px 16px' },
+                              }}
                             >
                               分析
                             </Button>
@@ -708,9 +727,10 @@ export default function ExamDetailPage() {
                 startIcon={<DownloadIcon />}
                 onClick={() => setDownloadDialogOpen(true)}
                 sx={{
-                  px: 4,
-                  py: 1.5,
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1.25, sm: 1.5 },
                   borderRadius: 2,
+                  fontSize: { xs: '0.9375rem', sm: '1rem' },
                   background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
                   '&:hover': {
                     background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
@@ -729,14 +749,21 @@ export default function ExamDetailPage() {
           onClose={() => setDownloadDialogOpen(false)}
           maxWidth="sm"
           fullWidth
+          fullScreen={isMobile}
+          PaperProps={{
+            sx: {
+              m: { xs: 0, sm: 2 },
+              borderRadius: { xs: 0, sm: 2 },
+            },
+          }}
         >
           <DialogTitle>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               📋 选择要导出的信息
             </Typography>
           </DialogTitle>
-          <DialogContent>
-            <FormGroup sx={{ mt: 2 }}>
+          <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <FormGroup sx={{ mt: { xs: 1, sm: 2 } }}>
               <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
                 基本信息
               </Typography>
