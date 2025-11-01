@@ -45,6 +45,16 @@ router.post('/login/password', async (req, res) => {
       user = await User.create(userData);
     }
 
+    // 检查用户是否被封禁
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: user.banReason || '账户已被封禁，无法登录',
+        isBanned: true,
+        banReason: user.banReason
+      });
+    }
+
     // 生成JWT token
     const token = jwt.sign(
       { userId: user._id, account: user.account },
@@ -78,6 +88,23 @@ router.post('/sms/send', async (req, res) => {
     
     if (!phoneNumber) {
       return res.status(400).json({ success: false, message: '手机号不能为空' });
+    }
+    
+    // 在发送验证码前检查该手机号对应的账号是否被封禁
+    const user = await User.findOne({ 
+      $or: [
+        { account: phoneNumber },
+        { phoneNumber: phoneNumber }
+      ]
+    });
+    
+    if (user && user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: user.banReason || '账户已被封禁，无法发送验证码',
+        isBanned: true,
+        banReason: user.banReason
+      });
     }
     
     const result = await sendAuthCode(phoneNumber);
@@ -160,6 +187,16 @@ router.post('/login/authcode', async (req, res) => {
       await user.save();
     } else {
       user = await User.create(userData);
+    }
+
+    // 检查用户是否被封禁
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: user.banReason || '账户已被封禁，无法登录',
+        isBanned: true,
+        banReason: user.banReason
+      });
     }
 
     // 生成JWT token

@@ -29,6 +29,7 @@ export default function AdminSettingsPage() {
   const [exportMessage, setExportMessage] = useState({ type: '', text: '' });
   const [importMessage, setImportMessage] = useState({ type: '', text: '' });
   const [importFile, setImportFile] = useState(null);
+  const [importFileContent, setImportFileContent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dbConnectionString, setDbConnectionString] = useState('');
   const [dbTestResult, setDbTestResult] = useState({ type: '', text: '', loading: false });
@@ -91,42 +92,134 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleImportFileChange = (e) => {
+  const handleImportFileChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setImportFile(file);
+    if (!file) {
+      setImportFile(null);
+      setImportFileContent(null);
       setImportMessage({ type: '', text: '' });
+      return;
+    }
+
+    // 立即读取文件内容，避免权限问题
+    setImportFile(file);
+    setImportMessage({ type: '', text: '' });
+    
+    try {
+      const fileContent = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            resolve(e.target.result);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = (e) => {
+          reject(new Error('文件读取失败：' + (e.target.error?.message || '未知错误')));
+        };
+        reader.readAsText(file, 'UTF-8');
+      });
+      
+      setImportFileContent(fileContent);
+    } catch (error) {
+      setImportFile(null);
+      setImportFileContent(null);
+      setImportMessage({ 
+        type: 'error', 
+        text: error.message || '文件读取失败，请重试' 
+      });
     }
   };
 
   const handleImportData = async () => {
-    if (!importFile) {
-      setImportMessage({ type: 'error', text: '请选择要导入的文件' });
+    if (!importFileContent) {
+      setImportMessage({ type: 'error', text: '请选择要导入的文件，或文件读取失败' });
       return;
     }
 
     setLoading(true);
+    setImportMessage({ type: '', text: '' });
+    
     try {
-      const fileContent = await importFile.text();
-      const data = JSON.parse(fileContent);
+      let data;
+      try {
+        data = JSON.parse(importFileContent);
+      } catch (parseError) {
+        setImportMessage({ 
+          type: 'error', 
+          text: '文件格式错误：无法解析JSON文件，请确保文件格式正确。错误：' + parseError.message 
+        });
+        setLoading(false);
+        return;
+      }
       
-      if (!data.users || !data.examReports) {
-        setImportMessage({ type: 'error', text: '文件格式不正确，缺少必要数据' });
+      // 如果文件是导出的格式（包含 data 字段），提取实际数据
+      if (data.data && (data.data.users || data.data.examReports || data.data.announcements)) {
+        data = data.data;
+      }
+      
+      // 检查数据格式（apiLogs 会被忽略，但不要求必须有）
+      const hasUsers = Array.isArray(data.users);
+      const hasExamReports = Array.isArray(data.examReports);
+      const hasAnnouncements = Array.isArray(data.announcements);
+      
+      if (!hasUsers && !hasExamReports && !hasAnnouncements) {
+        setImportMessage({ 
+          type: 'error', 
+          text: '文件格式不正确，缺少必要数据字段（users, examReports, announcements）。注意：API日志数据不会被导入。' 
+        });
+        setLoading(false);
         return;
       }
 
-      const result = await api.post('/admin/import-data', data);
+      // 准备导入数据（排除 exportDate 和 version 等元数据字段，apiLogs 会被后端忽略）
+      const importData = {
+        users: hasUsers ? data.users : [],
+        examReports: hasExamReports ? data.examReports : [],
+        announcements: hasAnnouncements ? data.announcements : [],
+      };
+
+      const result = await api.post('/admin/import-data', importData);
       if (result.success) {
-        setImportMessage({ type: 'success', text: result.message || '数据导入成功' });
+        let message = result.message || '数据导入成功';
+        if (result.warnings && result.warnings.length > 0) {
+          message += `。警告：${result.warnings.slice(0, 3).join('; ')}`;
+          if (result.warnings.length > 3) {
+            message += `...（还有 ${result.warnings.length - 3} 个警告）`;
+          }
+        }
+        setImportMessage({ type: 'success', text: message });
         setImportFile(null);
+        setImportFileContent(null);
         // 重置文件输入
         const fileInput = document.querySelector('input[type="file"]');
         if (fileInput) fileInput.value = '';
       } else {
-        setImportMessage({ type: 'error', text: result.message || '数据导入失败' });
+        let errorMsg = result.message || '数据导入失败';
+        if (result.errors && result.errors.length > 0) {
+          errorMsg += `。错误详情：${result.errors.slice(0, 3).join('; ')}`;
+          if (result.errors.length > 3) {
+            errorMsg += `...（还有 ${result.errors.length - 3} 个错误）`;
+          }
+        }
+        console.error('导入失败:', result);
+        setImportMessage({ type: 'error', text: errorMsg });
       }
     } catch (error) {
-      setImportMessage({ type: 'error', text: error.message || '数据导入失败，请检查文件格式' });
+      console.error('导入异常:', error);
+      let errorMsg = '数据导入失败';
+      if (error.message) {
+        errorMsg = error.message;
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+        if (error.response.data.errors) {
+          errorMsg += `。错误详情：${error.response.data.errors.slice(0, 3).join('; ')}`;
+        }
+      } else if (error.response?.data) {
+        errorMsg = JSON.stringify(error.response.data);
+      }
+      setImportMessage({ type: 'error', text: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -281,7 +374,7 @@ export default function AdminSettingsPage() {
             )}
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              导出所有用户数据和考试报告数据为JSON格式备份文件
+              导出用户数据、考试报告和公示信息为JSON格式备份文件（不包含API日志数据）
             </Typography>
             <Button
               variant="contained"
@@ -368,7 +461,7 @@ export default function AdminSettingsPage() {
             )}
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              从备份文件导入数据，将覆盖现有数据（相同账号/考试ID的数据会更新）
+              从备份文件导入数据，将覆盖现有数据（相同账号/考试ID的数据会更新）。注意：备份文件中的API日志数据将被忽略，不会导入。
             </Typography>
             
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -386,8 +479,8 @@ export default function AdminSettingsPage() {
                 />
               </Button>
               {importFile && (
-                <Typography variant="body2" color="text.secondary">
-                  已选择: {importFile.name}
+                <Typography variant="body2" color={importFileContent ? 'text.secondary' : 'error'}>
+                  {importFileContent ? `已选择: ${importFile.name}` : `文件读取失败: ${importFile.name}`}
                 </Typography>
               )}
             </Box>
@@ -395,7 +488,7 @@ export default function AdminSettingsPage() {
             <Button
               variant="contained"
               onClick={handleImportData}
-              disabled={loading || !importFile}
+              disabled={loading || !importFileContent}
               sx={{ mt: 2 }}
             >
               一键导入备份数据

@@ -41,8 +41,26 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         return { success: true, data: response.data };
       }
+      // 检查是否是封禁错误
+      if (response.isBanned) {
+        return { 
+          success: false, 
+          message: response.message || '账户已被封禁，无法登录',
+          isBanned: true,
+          banReason: response.banReason
+        };
+      }
       return { success: false, message: response.message };
     } catch (error) {
+      // 处理403封禁错误
+      if (error.response?.status === 403 && error.response?.data?.isBanned) {
+        return { 
+          success: false, 
+          message: error.response.data.message || '账户已被封禁，无法登录',
+          isBanned: true,
+          banReason: error.response.data.banReason
+        };
+      }
       return { success: false, message: error.message || '登录失败' };
     }
   };
@@ -60,8 +78,26 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         return { success: true, needBind: false, data: response.data };
       }
+      // 检查是否是封禁错误
+      if (response.isBanned) {
+        return { 
+          success: false, 
+          message: response.message || '账户已被封禁，无法登录',
+          isBanned: true,
+          banReason: response.banReason
+        };
+      }
       return { success: false, message: response.message };
     } catch (error) {
+      // 处理403封禁错误
+      if (error.response?.status === 403 && error.response?.data?.isBanned) {
+        return { 
+          success: false, 
+          message: error.response.data.message || '账户已被封禁，无法登录',
+          isBanned: true,
+          banReason: error.response.data.banReason
+        };
+      }
       return { success: false, message: error.message || '登录失败' };
     }
   };
@@ -78,6 +114,15 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/sms/send', { phoneNumber });
       return response;
     } catch (error) {
+      // 处理403封禁错误
+      if (error.response?.status === 403 && (error.isBanned || error.response?.data?.isBanned)) {
+        return { 
+          success: false, 
+          message: error.banReason || error.response?.data?.banReason || error.response?.data?.message || '账户已被封禁，无法发送验证码',
+          isBanned: true,
+          banReason: error.banReason || error.response?.data?.banReason
+        };
+      }
       return { success: false, message: error.message || '发送验证码失败' };
     }
   };

@@ -25,6 +25,10 @@ import {
   Snackbar,
   useMediaQuery,
   useTheme,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  FormHelperText,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -106,6 +110,10 @@ export default function LoginPage() {
         }
       } catch (error) {
         console.error('获取用户协议失败:', error);
+        // 如果获取失败，设置默认协议内容
+        if (error.error === 'NETWORK_ERROR' || error.message?.includes('fetch failed')) {
+          setAgreementContent('无法连接到服务器，请检查后端服务是否正常运行。\n\n默认用户协议：\n\n1. 用户需遵守相关法律法规\n2. 禁止恶意使用系统\n3. 保护个人信息安全');
+        }
       }
     };
     fetchAgreement();
@@ -130,8 +138,10 @@ export default function LoginPage() {
   };
 
   const handleCodeChange = (value) => {
-    setAuthCode(value);
-    const validation = validateAuthCode(value);
+    // 只允许输入数字，最多6位
+    const numericValue = value.replace(/\D/g, '').slice(0, 6);
+    setAuthCode(numericValue);
+    const validation = validateAuthCode(numericValue);
     setCodeError(validation.valid ? '' : validation.message);
   };
 
@@ -167,7 +177,12 @@ export default function LoginPage() {
           navigate('/welcome', { replace: true });
         }, 100);
       } else {
-        setError(result.message || '登录失败');
+        // 如果是封禁错误，显示详细信息
+        if (result.isBanned) {
+          setError(result.banReason ? `账户已被封禁：${result.banReason}` : result.message || '账户已被封禁，无法登录');
+        } else {
+          setError(result.message || '登录失败');
+        }
       }
     } catch (err) {
       setError(err.message || '登录失败');
@@ -178,6 +193,7 @@ export default function LoginPage() {
 
   const handleSendCode = async () => {
     setError('');
+    setPhoneError('');
     const validation = validatePhone(phoneNumber);
     if (!validation.valid) {
       setPhoneError(validation.message);
@@ -201,10 +217,20 @@ export default function LoginPage() {
           });
         }, 1000);
       } else {
-        setError(result.message || '发送验证码失败');
+        // 如果是封禁错误，显示详细信息
+        if (result.isBanned) {
+          setPhoneError(result.banReason ? `账户已被封禁：${result.banReason}` : result.message || '账户已被封禁，无法发送验证码');
+        } else {
+          setError(result.message || '发送验证码失败');
+        }
       }
     } catch (err) {
-      setError(err.message || '发送验证码失败');
+      // 处理封禁错误
+      if (err.isBanned) {
+        setPhoneError(err.banReason ? `账户已被封禁：${err.banReason}` : err.message || '账户已被封禁，无法发送验证码');
+      } else {
+        setError(err.message || '发送验证码失败');
+      }
     }
   };
 
@@ -252,7 +278,12 @@ export default function LoginPage() {
           }, 100);
         }
       } else {
-        setError(result.message || '登录失败');
+        // 如果是封禁错误，显示详细信息
+        if (result.isBanned) {
+          setError(result.banReason ? `账户已被封禁：${result.banReason}` : result.message || '账户已被封禁，无法登录');
+        } else {
+          setError(result.message || '登录失败');
+        }
       }
     } catch (err) {
       setError(err.message || '登录失败');
@@ -522,26 +553,74 @@ export default function LoginPage() {
                       ),
                     }}
                   />
-                  <Box sx={{ display: 'flex', gap: 1, mt: 2, mb: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
-                    <TextField
-                      fullWidth
-                      label="验证码"
-                      value={authCode}
-                      onChange={(e) => handleCodeChange(e.target.value)}
-                      required
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1, 
+                    mt: 2, 
+                    mb: 1, 
+                    flexDirection: { xs: 'column', sm: 'row' }, 
+                    alignItems: { xs: 'stretch', sm: 'flex-start' },
+                    width: '100%',
+                  }}>
+                    <FormControl 
+                      required 
                       error={!!codeError}
-                      helperText={codeError}
-                      InputProps={{
-                        startAdornment: (
+                      sx={{ 
+                        flex: { xs: '1 1 auto', sm: '1 1 0%' }, 
+                        width: { xs: '100%', sm: 'auto' },
+                        minWidth: { xs: 0, sm: '250px' },
+                      }}
+                    >
+                      <InputLabel 
+                        htmlFor="auth-code-input"
+                        sx={{
+                          '&.MuiInputLabel-shrink': {
+                            transform: 'translate(14px, -9px) scale(0.75)',
+                          },
+                        }}
+                      >
+                        验证码
+                      </InputLabel>
+                      <OutlinedInput
+                        id="auth-code-input"
+                        label="验证码"
+                        value={authCode}
+                        onChange={(e) => handleCodeChange(e.target.value)}
+                        placeholder="请输入验证码"
+                        inputProps={{
+                          maxLength: 6,
+                          inputMode: 'numeric',
+                          pattern: '[0-9]*',
+                        }}
+                        startAdornment={
                           <InputAdornment position="start">
                             🔑
                           </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        flex: 1,
-                      }}
-                    />
+                        }
+                        sx={{
+                          width: '100%',
+                          maxWidth: '100%',
+                          '& .MuiOutlinedInput-root': {
+                            transform: 'none !important',
+                            width: '100%',
+                            maxWidth: '100%',
+                            '&:hover': {
+                              transform: 'none !important',
+                            },
+                            '&.Mui-focused': {
+                              transform: 'none !important',
+                            },
+                          },
+                          '& input': {
+                            width: '100%',
+                            maxWidth: '100%',
+                          },
+                        }}
+                      />
+                      {codeError && (
+                        <FormHelperText error>{codeError}</FormHelperText>
+                      )}
+                    </FormControl>
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -564,28 +643,34 @@ export default function LoginPage() {
                         {countdown > 0 ? `⏱️ ${countdown}s` : '📤 发送验证码'}
                       </Button>
                     </motion.div>
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      style={{ display: { xs: 'none', sm: 'block' } }}
+                    <Box
+                      sx={{
+                        display: { xs: 'none', sm: 'block' },
+                        flexShrink: 0,
+                      }}
                     >
-                      <Button
-                        variant="outlined"
-                        onClick={handleSendCode}
-                        disabled={codeSent && countdown > 0 || !!phoneError}
-                        sx={{ 
-                          minWidth: { xs: '100%', sm: 120 },
-                          height: '56px',
-                          borderColor: 'primary.main',
-                          display: { xs: 'none', sm: 'block' },
-                          '&:hover': {
-                            borderColor: 'primary.dark',
-                          },
-                        }}
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        {countdown > 0 ? `⏱️ ${countdown}s` : '📤 发送'}
-                      </Button>
-                    </motion.div>
+                        <Button
+                          variant="outlined"
+                          onClick={handleSendCode}
+                          disabled={codeSent && countdown > 0 || !!phoneError}
+                          sx={{ 
+                            minWidth: { xs: '100%', sm: 120 },
+                            height: '56px',
+                            borderColor: 'primary.main',
+                            display: { xs: 'none', sm: 'block' },
+                            '&:hover': {
+                              borderColor: 'primary.dark',
+                            },
+                          }}
+                        >
+                          {countdown > 0 ? `⏱️ ${countdown}s` : '📤 发送'}
+                        </Button>
+                      </motion.div>
+                    </Box>
                   </Box>
                   <Box sx={{ mt: 3 }}>
                     <FormControlLabel

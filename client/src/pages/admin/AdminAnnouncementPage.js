@@ -160,6 +160,7 @@ export default function AdminAnnouncementPage() {
           <Tabs value={tab} onChange={(e, v) => setTab(v)}>
             <Tab label="关于我们" />
             <Tab label="版权信息" />
+            <Tab label="用户协议" />
           </Tabs>
 
           <TabPanel value={tab} index={0}>

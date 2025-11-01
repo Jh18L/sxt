@@ -41,6 +41,7 @@ export default function AdminLogsPage() {
   const [endDate, setEndDate] = useState('');
   const [expandedLog, setExpandedLog] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState({ type: '', text: '' });
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchLogs();
@@ -48,6 +49,7 @@ export default function AdminLogsPage() {
 
   const fetchLogs = async () => {
     setLoading(true);
+    setErrorMessage('');
     try {
       const params = { page, size: 50 };
       if (method) params.method = method;
@@ -59,9 +61,14 @@ export default function AdminLogsPage() {
       if (result.success && result.data) {
         setLogs(result.data.list || []);
         setTotal(result.data.total || 0);
+      } else {
+        setErrorMessage(result.message || '获取日志失败');
       }
     } catch (error) {
       console.error('获取日志失败:', error);
+      setErrorMessage(error.message || error.response?.data?.message || '获取日志失败，请检查网络连接');
+      setLogs([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -183,6 +190,12 @@ export default function AdminLogsPage() {
           </CardContent>
         </Card>
 
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage('')}>
+            {errorMessage}
+          </Alert>
+        )}
+
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
@@ -202,7 +215,16 @@ export default function AdminLogsPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {logs.map((log) => (
+                  {logs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          暂无日志数据
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    logs.map((log) => (
                     <React.Fragment key={log._id}>
                       <TableRow>
                         <TableCell sx={{ whiteSpace: 'nowrap' }}>
@@ -292,18 +314,21 @@ export default function AdminLogsPage() {
                         </TableRow>
                       )}
                     </React.Fragment>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Pagination
-                count={Math.ceil(total / 50)}
-                page={page}
-                onChange={(e, value) => setPage(value)}
-                color="primary"
-              />
-            </Box>
+            {total > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                <Pagination
+                  count={Math.ceil(total / 50)}
+                  page={page}
+                  onChange={(e, value) => setPage(value)}
+                  color="primary"
+                />
+              </Box>
+            )}
           </>
         )}
       </Box>
