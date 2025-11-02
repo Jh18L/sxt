@@ -21,6 +21,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import PeopleIcon from '@mui/icons-material/People';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import api from '../../utils/api';
+import Footer from '../../components/Footer';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
