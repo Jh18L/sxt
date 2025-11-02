@@ -12,6 +12,7 @@ package-lock.json
 # Build outputs
 client/build/
 server/dist/
+server/public/
 
 # Logs
 logs/

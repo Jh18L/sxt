@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const examRoutes = require('./routes/exam');
@@ -22,10 +23,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://root:22k7lfr2@dbconn.sealosbja.site:42762/?directConnection=true', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://root:22k7lfr2@dbconn.sealosbja.site:42762/?directConnection=true')
 .then(() => console.log('✅ MongoDB连接成功'))
 .catch((err) => console.error('❌ MongoDB连接失败:', err));
 
@@ -41,7 +39,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '服务器运行正常' });
 });
 
-const PORT = process.env.PORT || 5000;
+// 提供静态文件服务
+app.use(express.static(path.join(__dirname, '../public')));
+
+// 处理 React Router 的路由 - 必须在所有路由之后
+app.get('*', (req, res) => {
+  // 只处理非API路由
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  }
+});
+
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
 });
