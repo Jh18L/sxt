@@ -43,14 +43,19 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 // 处理 React Router 的路由 - 必须在所有路由之后
+// 只处理非API路由，API路由返回404
 app.get('*', (req, res) => {
   // 只处理非API路由
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, '../public/index.html'));
+  } else {
+    // API路由不存在时返回404
+    res.status(404).json({ success: false, message: 'API路由不存在' });
   }
 });
 
-const PORT = process.env.PORT || 8080;
+// 开发环境默认5000端口，生产环境默认8080端口
+const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? 8080 : 5000);
 app.listen(PORT, () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
 });

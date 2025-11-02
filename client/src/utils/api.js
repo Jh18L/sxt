@@ -4,6 +4,11 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5000/api');
 
+// 开发环境下打印API配置（便于调试）
+if (process.env.NODE_ENV !== 'production') {
+  console.log('API Base URL:', API_BASE_URL);
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -42,13 +47,22 @@ api.interceptors.response.use(
   (error) => {
     // 处理网络错误
     if (error.code === 'ERR_NETWORK' || error.message?.includes('fetch failed') || error.message?.includes('Network Error')) {
+      const isProduction = process.env.NODE_ENV === 'production';
       console.error('网络请求失败，请检查：');
-      console.error('1. 后端服务是否运行在端口 5000');
-      console.error('2. 网络连接是否正常');
-      console.error('3. CORS 配置是否正确');
+      if (!isProduction) {
+        console.error('1. 后端服务是否运行在端口 5000');
+        console.error('2. 网络连接是否正常');
+        console.error('3. CORS 配置是否正确');
+      } else {
+        console.error('1. 后端服务是否正常运行');
+        console.error('2. 网络连接是否正常');
+        console.error('3. API路径是否正确');
+      }
       const networkError = {
         success: false,
-        message: '网络连接失败，请检查后端服务是否正常运行',
+        message: isProduction 
+          ? '网络连接失败，请检查后端服务是否正常运行' 
+          : '网络连接失败，请检查后端服务是否运行在端口 5000',
         error: 'NETWORK_ERROR',
       };
       return Promise.reject(networkError);
