@@ -8,10 +8,12 @@ WORKDIR /app
 COPY . .
 
 # 安装依赖并构建前端
-# 设置NODE_ENV=production确保前端构建时使用生产配置
+# 注意：安装依赖时不设置NODE_ENV=production，否则会跳过devDependencies
+# react-scripts在devDependencies中，构建时需要它
 RUN npm install && \
     cd server && npm install && \
-    cd ../client && NODE_ENV=production npm install && NODE_ENV=production npm run build && \
+    cd ../client && npm install && \
+    NODE_ENV=production npm run build && \
     mkdir -p ../server/public && \
     cp -r build/* ../server/public/ && \
     cd ..
