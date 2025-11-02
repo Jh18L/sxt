@@ -36,13 +36,30 @@ async function logApiCall(axiosInstance, method, url, config, response, error, d
   }
 }
 
+// 生成Trace-Id（UUID格式）
+function generateTraceId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // 创建axios实例
+// 使用真实的应用请求头来避免被拦截
 const apiClient = axios.create({
   baseURL: SXT_API_BASE,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+    'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 12; TAS-AN00 Build/HUAWEITAS-AN00)',
+    'Accept-Encoding': 'gzip',
+    'Connection': 'Keep-Alive',
+    'versionName': '3.3.5',
+    'versionCode': '335',
+    'appType': 'student',
+    'operatingSystem': 'android',
+    'pid': 'SXT',
   }
 });
 
@@ -51,14 +68,41 @@ const portalClient = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+    'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 12; TAS-AN00 Build/HUAWEITAS-AN00)',
+    'Accept-Encoding': 'gzip',
+    'Connection': 'Keep-Alive',
+    'versionName': '3.3.5',
+    'versionCode': '335',
+    'appType': 'student',
+    'operatingSystem': 'android',
+    'pid': 'SXT',
   }
 });
 
-// 添加请求拦截器记录日志
+// 请求延迟队列（避免请求频率过高）
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 500; // 最小请求间隔500ms
+
+// 添加请求拦截器记录日志和频率控制
 const setupLogging = (client) => {
   client.interceptors.request.use(config => {
     config.metadata = { startTime: Date.now() };
+    
+    // 为每个请求添加Trace-Id（模拟真实应用行为）
+    if (!config.headers['Trace-Id']) {
+      config.headers['Trace-Id'] = generateTraceId();
+    }
+    
+    // 频率控制：确保请求间隔至少500ms
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+      const delay = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+      // 注意：这里不能真正延迟，因为axios拦截器不支持异步延迟
+      // 实际的延迟应该在调用函数时处理
+    }
+    lastRequestTime = now;
+    
     return config;
   });
 
@@ -79,9 +123,44 @@ const setupLogging = (client) => {
 setupLogging(apiClient);
 setupLogging(portalClient);
 
+// 检测HTML响应（错误页面）
+function isHtmlResponse(data) {
+  if (typeof data === 'string') {
+    return data.trim().toLowerCase().startsWith('<!doctype') || 
+           data.includes('<html') || 
+           data.includes('405') ||
+           data.includes('很抱歉，由于您访问的URL有可能对网站造成安全威胁');
+  }
+  return false;
+}
+
+// 从HTML响应中提取错误信息
+function extractErrorFromHtml(html) {
+  if (html.includes('405')) {
+    return '请求被服务器安全防护拦截，请稍后重试';
+  }
+  if (html.includes('很抱歉，由于您访问的URL有可能对网站造成安全威胁')) {
+    return '请求被安全防护拦截，可能是请求频率过高，请稍后重试';
+  }
+  return '服务器返回了错误页面，请稍后重试';
+}
+
+// 请求延迟辅助函数
+async function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // 密码登录
 async function passwordLogin(account, password) {
   try {
+    // 频率控制：确保请求间隔
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+      await delay(MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+    }
+    lastRequestTime = Date.now();
+    
     const response = await apiClient.post('/passport/api/auth/login', {
       app: 'SXT',
       password: password,
@@ -90,20 +169,77 @@ async function passwordLogin(account, password) {
       account: account,
       platform: 'ANDROID'
     });
+    
+    // 检查响应是否为HTML（错误页面）
+    if (isHtmlResponse(response.data)) {
+      const errorMsg = extractErrorFromHtml(response.data);
+      const apiError = new Error(errorMsg);
+      apiError.isHtmlResponse = true;
+      apiError.statusCode = response.status || 405;
+      throw apiError;
+    }
+    
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    // 处理HTML响应错误
+    if (error.response && isHtmlResponse(error.response.data)) {
+      const errorMsg = extractErrorFromHtml(error.response.data);
+      const apiError = new Error(errorMsg);
+      apiError.isHtmlResponse = true;
+      apiError.statusCode = error.response.status || 405;
+      throw apiError;
+    }
+    
+    // 统一错误格式
+    const errorData = error.response?.data || { message: error.message || '网络请求失败' };
+    const apiError = new Error(errorData.message || errorData.error || '登录失败');
+    apiError.response = error.response;
+    apiError.data = errorData;
+    throw apiError;
   }
 }
 
 // 发送验证码 - POST请求，参数在URL query string中
 async function sendAuthCode(phoneNumber) {
   try {
+    // 频率控制：确保请求间隔（验证码发送需要更长的间隔）
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    const minInterval = 1000; // 验证码发送至少间隔1秒
+    if (timeSinceLastRequest < minInterval) {
+      await delay(minInterval - timeSinceLastRequest);
+    }
+    lastRequestTime = Date.now();
+    
     // 文档显示方法为POST，但参数在URL中，所以使用POST + query参数
     const response = await apiClient.post(`/passport/api/sms/send_auth_code?phoneNumber=${encodeURIComponent(phoneNumber)}`, {});
+    
+    // 检查响应是否为HTML（错误页面）
+    if (isHtmlResponse(response.data)) {
+      const errorMsg = extractErrorFromHtml(response.data);
+      const apiError = new Error(errorMsg);
+      apiError.isHtmlResponse = true;
+      apiError.statusCode = response.status || 405;
+      throw apiError;
+    }
+    
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    // 处理HTML响应错误
+    if (error.response && isHtmlResponse(error.response.data)) {
+      const errorMsg = extractErrorFromHtml(error.response.data);
+      const apiError = new Error(errorMsg);
+      apiError.isHtmlResponse = true;
+      apiError.statusCode = error.response.status || 405;
+      throw apiError;
+    }
+    
+    // 统一错误格式
+    const errorData = error.response?.data || { message: error.message || '网络请求失败' };
+    const apiError = new Error(errorData.message || errorData.error || '发送验证码失败');
+    apiError.response = error.response;
+    apiError.data = errorData;
+    throw apiError;
   }
 }
 
@@ -131,7 +267,12 @@ async function authCodeLogin(account, password) {
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    // 统一错误格式
+    const errorData = error.response?.data || { message: error.message || '网络请求失败' };
+    const apiError = new Error(errorData.message || errorData.error || '登录失败');
+    apiError.response = error.response;
+    apiError.data = errorData;
+    throw apiError;
   }
 }
 

@@ -413,6 +413,8 @@ export default function LoginPage() {
                 <Box component="form" onSubmit={handlePasswordLogin}>
                   <TextField
                     fullWidth
+                    id="account"
+                    name="account"
                     label="账号"
                     value={account}
                     onChange={(e) => handleAccountChange(e.target.value)}
@@ -421,6 +423,7 @@ export default function LoginPage() {
                     autoFocus
                     error={!!accountError}
                     helperText={accountError}
+                    autoComplete="username"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -438,6 +441,8 @@ export default function LoginPage() {
                   />
                   <TextField
                     fullWidth
+                    id="password"
+                    name="password"
                     label="密码"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -446,6 +451,7 @@ export default function LoginPage() {
                     required
                     error={!!passwordError}
                     helperText={passwordError}
+                    autoComplete="current-password"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -537,6 +543,8 @@ export default function LoginPage() {
                 <Box component="form" onSubmit={handleAuthCodeLogin}>
                   <TextField
                     fullWidth
+                    id="phoneNumber"
+                    name="phoneNumber"
                     label="手机号"
                     value={phoneNumber}
                     onChange={(e) => handlePhoneChange(e.target.value)}
@@ -545,6 +553,7 @@ export default function LoginPage() {
                     autoFocus
                     error={!!phoneError}
                     helperText={phoneError}
+                    autoComplete="tel"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -583,10 +592,12 @@ export default function LoginPage() {
                       </InputLabel>
                       <OutlinedInput
                         id="auth-code-input"
+                        name="authCode"
                         label="验证码"
                         value={authCode}
                         onChange={(e) => handleCodeChange(e.target.value)}
                         placeholder="请输入验证码"
+                        autoComplete="one-time-code"
                         inputProps={{
                           maxLength: 6,
                           inputMode: 'numeric',

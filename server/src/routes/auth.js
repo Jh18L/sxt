@@ -18,10 +18,26 @@ router.post('/login/password', async (req, res) => {
     const encryptedPassword = encryptAES(password);
     
     // 调用生学堂API
-    const result = await passwordLogin(account, encryptedPassword);
+    let result;
+    try {
+      result = await passwordLogin(account, encryptedPassword);
+    } catch (apiError) {
+      // 处理API调用错误
+      console.error('生学堂API调用失败:', apiError);
+      const errorMessage = apiError?.message || apiError?.error || (typeof apiError === 'string' ? apiError : '外部API调用失败');
+      return res.status(500).json({ 
+        success: false, 
+        message: errorMessage || '登录失败，请稍后重试' 
+      });
+    }
     
-    if (!result.success) {
-      return res.status(401).json(result);
+    // 检查API返回结果
+    if (!result || !result.success) {
+      const errorMessage = result?.message || result?.error || '登录失败';
+      return res.status(401).json({ 
+        success: false, 
+        message: errorMessage 
+      });
     }
 
     // 保存或更新用户信息
@@ -76,7 +92,13 @@ router.post('/login/password', async (req, res) => {
     });
   } catch (error) {
     console.error('密码登录错误:', error);
-    res.status(500).json({ success: false, message: error.message || '登录失败' });
+    console.error('错误堆栈:', error.stack);
+    const errorMessage = error.message || '登录失败，请稍后重试';
+    res.status(500).json({ 
+      success: false, 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -91,12 +113,18 @@ router.post('/sms/send', async (req, res) => {
     }
     
     // 在发送验证码前检查该手机号对应的账号是否被封禁
-    const user = await User.findOne({ 
-      $or: [
-        { account: phoneNumber },
-        { phoneNumber: phoneNumber }
-      ]
-    });
+    let user;
+    try {
+      user = await User.findOne({ 
+        $or: [
+          { account: phoneNumber },
+          { phoneNumber: phoneNumber }
+        ]
+      });
+    } catch (dbError) {
+      console.error('数据库查询错误:', dbError);
+      // 数据库错误不影响验证码发送，继续执行
+    }
     
     if (user && user.isBanned) {
       return res.status(403).json({
@@ -107,11 +135,30 @@ router.post('/sms/send', async (req, res) => {
       });
     }
     
-    const result = await sendAuthCode(phoneNumber);
+    // 调用生学堂API发送验证码
+    let result;
+    try {
+      result = await sendAuthCode(phoneNumber);
+    } catch (apiError) {
+      // 处理API调用错误
+      console.error('生学堂API调用失败:', apiError);
+      const errorMessage = apiError?.message || apiError?.error || (typeof apiError === 'string' ? apiError : '外部API调用失败');
+      return res.status(500).json({ 
+        success: false, 
+        message: errorMessage || '发送验证码失败，请稍后重试' 
+      });
+    }
+    
     res.json(result);
   } catch (error) {
     console.error('发送验证码错误:', error);
-    res.status(500).json({ success: false, message: error.message || '发送验证码失败' });
+    console.error('错误堆栈:', error.stack);
+    const errorMessage = error.message || '发送验证码失败，请稍后重试';
+    res.status(500).json({ 
+      success: false, 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -147,15 +194,39 @@ router.post('/login/authcode', async (req, res) => {
     const encryptedPassword = encryptAES(authCode);
     
     // 调用生学堂API
-    const result = await authCodeLogin(account, encryptedPassword);
+    let result;
+    try {
+      result = await authCodeLogin(account, encryptedPassword);
+    } catch (apiError) {
+      // 处理API调用错误
+      console.error('生学堂API调用失败:', apiError);
+      const errorMessage = apiError?.message || apiError?.error || (typeof apiError === 'string' ? apiError : '外部API调用失败');
+      return res.status(500).json({ 
+        success: false, 
+        message: errorMessage || '登录失败，请稍后重试' 
+      });
+    }
     
-    if (!result.success) {
-      return res.status(401).json(result);
+    // 检查API返回结果
+    if (!result || !result.success) {
+      const errorMessage = result?.message || result?.error || '登录失败';
+      return res.status(401).json({ 
+        success: false, 
+        message: errorMessage 
+      });
     }
 
     // 检查账号绑定
-    const bindCheck = await checkStudentNeedJoinClass(result.data.token);
-    if (bindCheck.data === true) {
+    let bindCheck;
+    try {
+      bindCheck = await checkStudentNeedJoinClass(result.data.token);
+    } catch (bindError) {
+      console.error('检查账号绑定失败:', bindError);
+      // 绑定检查失败不影响登录，继续执行
+      bindCheck = { data: false };
+    }
+    
+    if (bindCheck && bindCheck.data === true) {
       // 未绑定，需要先绑定
       return res.json({
         success: true,
@@ -221,7 +292,13 @@ router.post('/login/authcode', async (req, res) => {
     });
   } catch (error) {
     console.error('验证码登录错误:', error);
-    res.status(500).json({ success: false, message: error.message || '登录失败' });
+    console.error('错误堆栈:', error.stack);
+    const errorMessage = error.message || '登录失败，请稍后重试';
+    res.status(500).json({ 
+      success: false, 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
